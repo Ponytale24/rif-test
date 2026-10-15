@@ -1,0 +1,65 @@
+{
+  "gui_version": "1.2",
+  "workflow_name": "rox-hello-world-kit",
+  "nodes": [
+    {
+      "id": "container-rox-hello-world",
+      "data": {
+        "label": "rox-hello-world-src.zip",
+        "params": {
+          "type": "dlr.container",
+          "provider_bpn": "REPLACE_WITH_PROVIDER_BPN",
+          "provider_url": "https://vision-x-api.base-x-ecosystem.org/connectors/REPLACE_WITH_CONNECTOR_NAME/cp/protocol",
+          "asset_id": "REPLACE_WITH_ASSET_ID",
+          "representation": "source_archive",
+          "platforms": [
+            "linux/amd64",
+            "linux/arm64"
+          ],
+          "image_name": "rox-hello-world",
+          "image_tag": "0.1.0",
+          "registry_addr": null
+        }
+      },
+      "position": { "x": -420, "y": 0 }
+    },
+    {
+      "id": "bash_command-run",
+      "data": {
+        "label": "Run Hello World container",
+        "params": {
+          "type": "bash_command",
+          "command": "docker rm -f rox-hello-world >/dev/null 2>&1 || true\ndocker run -d \\\n  --name rox-hello-world \\\n  --restart unless-stopped \\\n  -p 8090:8000 \\\n  rox-hello-world:0.1.0",
+          "timeout_seconds": 120
+        }
+      },
+      "position": { "x": -60, "y": 0 }
+    },
+    {
+      "id": "bash_command-smoke-test",
+      "data": {
+        "label": "Smoke test API",
+        "params": {
+          "type": "bash_command",
+          "command": "out=\"${ARTIFACT_ROOT:-/artifacts}/rox-hello-world\"\nmkdir -p \"$out\"\nfor i in $(seq 1 30); do\n  if docker exec rox-hello-world python -c \"import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/hello?name=KIT').read().decode())\" > \"$out/smoke-test.json\" 2>/dev/null; then\n    echo \"API answered:\"; cat \"$out/smoke-test.json\"\n    echo \"UI:  http://localhost:8090/\"\n    echo \"API: http://localhost:8090/api/hello?name=KIT\"\n    exit 0\n  fi\n  sleep 1\ndone\necho \"rox-hello-world did not answer within 30s\"; docker logs rox-hello-world; exit 1",
+          "timeout_seconds": 120
+        }
+      },
+      "position": { "x": 300, "y": 0 }
+    }
+  ],
+  "edges": [
+    {
+      "source": "container-rox-hello-world",
+      "target": "bash_command-run",
+      "sourceHandle": "dep",
+      "targetHandle": "dep"
+    },
+    {
+      "source": "bash_command-run",
+      "target": "bash_command-smoke-test",
+      "sourceHandle": "dep",
+      "targetHandle": "dep"
+    }
+  ]
+}
